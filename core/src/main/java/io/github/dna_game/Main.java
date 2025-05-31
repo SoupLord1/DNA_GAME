@@ -82,7 +82,9 @@ public class Main extends ApplicationAdapter {
 
     private void input() {
 
-        float speed = 4f;
+        Test test = new Test();
+
+        float speed = test.move_speed;
 
         float delta = Gdx.graphics.getDeltaTime();
 
