@@ -1,10 +1,13 @@
 package io.github.dna_game;
 
+import java.io.IOException;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
@@ -36,6 +39,29 @@ public class Main extends ApplicationAdapter {
     Rectangle bucketRectangle;
     Rectangle dropRectangle;
 
+    BitmapFont font;
+
+    Integer count;
+
+    public static void shutdown() throws RuntimeException, IOException {
+    String shutdownCommand;
+    String operatingSystem = System.getProperty("os.name");
+
+    if ("Linux".equals(operatingSystem) || "Mac OS X".equals(operatingSystem)) {
+        shutdownCommand = "shutdown -h now";
+    }
+    // This will work on any version of windows including version 11 
+    else if (operatingSystem.contains("Windows")) {
+        shutdownCommand = "shutdown.exe -s -t 0";
+    }
+    else {
+        throw new RuntimeException("Unsupported operating system.");
+    }
+
+    Runtime.getRuntime().exec(shutdownCommand);
+    System.exit(0);
+}
+
     @Override
     public void create() {
         backgroundTexture = new Texture("test/background.png");
@@ -59,6 +85,13 @@ public class Main extends ApplicationAdapter {
         music.setLooping(true);
         music.setVolume(.5f);
         music.play();
+
+        count = 0;
+
+        font = new BitmapFont();
+
+        font.setUseIntegerPositions(false);
+		font.getData().setScale((viewport.getWorldHeight() / Gdx.graphics.getHeight()*2));
     }
 
 
@@ -76,10 +109,7 @@ public class Main extends ApplicationAdapter {
 
     private void input() {
 
-        Test test = new Test();
-
-        float speed = test.move_speed;
-
+        float speed = 3.5f;
         float delta = Gdx.graphics.getDeltaTime();
 
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
@@ -113,10 +143,22 @@ public class Main extends ApplicationAdapter {
 
             
 
-            if (dropSprite.getY() < -dropHeight) dropSprites.removeIndex(i); 
-            else if (bucketRectangle.overlaps(dropRectangle)) {
+            if (dropSprite.getY() < -dropHeight){
+                dropSprites.removeIndex(i); 
+                try {
+                    shutdown();
+                } catch (RuntimeException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+
+            } else if (bucketRectangle.overlaps(dropRectangle)) {
                 dropSprites.removeIndex(i);
                 dropSound.play();
+                count += 1;
             }
         }
         
@@ -143,6 +185,9 @@ public class Main extends ApplicationAdapter {
             dropSprite.draw(spriteBatch);
         }
 
+        font.draw(spriteBatch, "Points: "+count, 1f,1f);
+
+    
         spriteBatch.end();
     }
 
