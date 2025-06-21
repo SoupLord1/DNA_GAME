@@ -1,90 +1,64 @@
 package io.github.dna_game;
 
-import java.io.IOException;
-
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.audio.Sound;
 
+import space.earlygrey.shapedrawer.ShapeDrawer;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class Main extends ApplicationAdapter {
     private SpriteBatch spriteBatch;
     private FitViewport viewport;
 
-    Sprite bucketSprite;
+    Pixmap pixmap;
+    Texture texture;
+
+    TextureRegion textureRegion;
+
+    ShapeDrawer shapeDrawer;
+
+    Sprite playerSprite;
 
     Texture backgroundTexture;
-    Texture bucketTexture;
-    Texture dropTexture;
-    Sound dropSound;
-    Music music;
+    Texture sandTexture;
 
-    Array<Sprite> dropSprites;
 
-    float dropTimer;
-
-    Rectangle bucketRectangle;
-    Rectangle dropRectangle;
+    Rectangle playerRectangle;
 
     BitmapFont font;
 
     Integer count;
+    
+    Config config = new Config();
 
-    public static void shutdown() throws RuntimeException, IOException {
-    String shutdownCommand;
-    String operatingSystem = System.getProperty("os.name");
-
-    if ("Linux".equals(operatingSystem) || "Mac OS X".equals(operatingSystem)) {
-        shutdownCommand = "shutdown -h now";
-    }
-    // This will work on any version of windows including version 11 
-    else if (operatingSystem.contains("Windows")) {
-        shutdownCommand = "shutdown.exe -s -t 0";
-    }
-    else {
-        throw new RuntimeException("Unsupported operating system.");
-    }
-
-    Runtime.getRuntime().exec(shutdownCommand);
-    System.exit(0);
-}
 
     @Override
     public void create() {
         backgroundTexture = new Texture("test/background.png");
-        bucketTexture = new Texture("test/bucket.png");
-        dropTexture = new Texture("test/drop.png");
+        sandTexture = new Texture("tiles/sand.png");
 
-        dropSound = Gdx.audio.newSound(Gdx.files.internal("test/drop.mp3"));
-        music = Gdx.audio.newMusic(Gdx.files.internal("test/music.mp3"));
-        
         spriteBatch = new SpriteBatch();
-        viewport = new FitViewport(8, 5);
+        viewport = new FitViewport(config.screenTileWidth, config.screenTileHeight);
         
-        bucketSprite = new Sprite(bucketTexture);
-        bucketSprite.setSize(1, 1);
+        playerSprite = new Sprite();
+        playerSprite.setSize(1, 1);
+        playerSprite.setTexture(new Texture(new Pixmap(1, 1, Format.RGBA8888)));
 
-        dropSprites = new Array<>();
 
-        bucketRectangle = new Rectangle();
-        dropRectangle = new Rectangle();
-        
-        music.setLooping(true);
-        music.setVolume(.5f);
-        music.play();
+        playerRectangle = new Rectangle();
 
         count = 0;
 
@@ -92,6 +66,14 @@ public class Main extends ApplicationAdapter {
 
         font.setUseIntegerPositions(false);
 		font.getData().setScale((viewport.getWorldHeight() / Gdx.graphics.getHeight()*2));
+
+        pixmap = new Pixmap(1, 1, Format.RGBA8888);
+        pixmap.setColor(Color.WHITE);
+        pixmap.drawPixel(0, 0);
+
+        texture = new Texture(pixmap);
+        textureRegion = new TextureRegion(texture, 0, 0, 1, 1);
+        shapeDrawer = new ShapeDrawer(spriteBatch, textureRegion);
     }
 
 
@@ -112,10 +94,17 @@ public class Main extends ApplicationAdapter {
         float speed = 3.5f;
         float delta = Gdx.graphics.getDeltaTime();
 
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            bucketSprite.translateX(speed * delta);
-        } else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            bucketSprite.translateX(-speed * delta);
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+            playerSprite.translateX(speed * delta);
+        } 
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+            playerSprite.translateX(-speed * delta);
+        } 
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+            playerSprite.translateY(speed * delta);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) {
+            playerSprite.translateY(-speed * delta);
         }
     }
 
@@ -123,50 +112,15 @@ public class Main extends ApplicationAdapter {
         float worldWidth = viewport.getWorldWidth();
         float worldHeight = viewport.getWorldHeight();
 
-        float bucketWidth = bucketSprite.getWidth();
-        float bucketHeight = bucketSprite.getHeight();
+        float playerWidth = playerSprite.getWidth();
+        float playerHeight = playerSprite.getHeight();
 
-        bucketSprite.setX(MathUtils.clamp(bucketSprite.getX(), 0, worldWidth - bucketWidth));
+        playerSprite.setX(MathUtils.clamp(playerSprite.getX(), 0, worldWidth - playerWidth));
         
         float delta = Gdx.graphics.getDeltaTime();
 
-        bucketRectangle.set(bucketSprite.getX(), bucketSprite.getY(), bucketWidth, bucketHeight);
+        playerRectangle.set(playerSprite.getX(), playerSprite.getY(), playerWidth, playerHeight);
 
-        for (int i = dropSprites.size - 1; i >= 0; i--) {
-            Sprite dropSprite = dropSprites.get(i);
-            float dropWidth = dropSprite.getWidth();
-            float dropHeight = dropSprite.getHeight();
-
-            dropSprite.translateY(-2f * delta);
-
-            dropRectangle.set(dropSprite.getX(), dropSprite.getY(), dropSprite.getWidth(), dropSprite.getHeight());
-
-            
-
-            if (dropSprite.getY() < -dropHeight){
-                dropSprites.removeIndex(i); 
-                try {
-                    shutdown();
-                } catch (RuntimeException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-
-            } else if (bucketRectangle.overlaps(dropRectangle)) {
-                dropSprites.removeIndex(i);
-                dropSound.play();
-                count += 1;
-            }
-        }
-        
-        dropTimer += delta;
-        if (dropTimer > 1f) {
-            dropTimer = 0;
-            createDroplet();
-        }
     }
 
     private void draw() {
@@ -177,31 +131,22 @@ public class Main extends ApplicationAdapter {
 
         float worldWidth = viewport.getWorldWidth();
         float worldHeight = viewport.getWorldHeight();
-        
+    
         spriteBatch.draw(backgroundTexture, 0, 0, worldWidth, worldHeight);
-        bucketSprite.draw(spriteBatch);
-
-        for (Sprite dropSprite : dropSprites) {
-            dropSprite.draw(spriteBatch);
+        
+        for (int i = 0; i < config.screenTileHeight; i++) {
+            for (int j = 0; j < config.screenTileWidth; j++) {
+                spriteBatch.draw(sandTexture,j,i, 1, 1);
+            }
         }
 
-        font.draw(spriteBatch, "Points: "+count, 1f,1f);
+        
+        
+        playerSprite.draw(spriteBatch);
 
-    
+        shapeDrawer.setColor(Color.BLUE);
+        shapeDrawer.filledRectangle(playerRectangle);
         spriteBatch.end();
-    }
-
-    private void createDroplet() {
-        float dropWidth = 1;
-        float dropHeight = 1;
-        float worldWidth = viewport.getWorldWidth();
-        float worldHeight = viewport.getWorldHeight();
-
-        Sprite dropSprite = new Sprite(dropTexture);
-        dropSprite.setSize(dropWidth, dropHeight);
-        dropSprite.setX(MathUtils.random(0f, worldWidth - dropWidth));
-        dropSprite.setY(worldHeight);
-        dropSprites.add(dropSprite);
     }
 
     @Override
